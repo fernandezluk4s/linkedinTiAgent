@@ -6,8 +6,7 @@
    Como usar:
    1. Gere uma chave gratuita em https://aistudio.google.com/app/apikey
    2. Cole a chave no campo da barra lateral
-   3. Os arquivos .md dentro da pasta arquivos.md/ carregam sozinhos
-      ao abrir a página (veja arquivos.md/manifest.json)
+   3. Carregue um ou mais arquivos .md
    4. Converse — as respostas usam só o conteúdo carregado
 
    Nota de segurança: a chave fica só na memória desta aba (nunca
@@ -18,14 +17,7 @@
    DevTools inclusive). Ótimo para uso pessoal e estudo, mas nunca
    publique este projeto num site público com uma chave fixa no
    código — para isso, o certo é ter um backend que guarda a chave.
-   Como cada visitante cola a própria chave, hospedar isso público
-   na Vercel não expõe chave nenhuma sua.
    ========================================================== */
-
-// Pasta com os arquivos .md e o manifesto que lista os nomes deles.
-// Pra adicionar/remover um documento: edite arquivos.md/manifest.json.
-const DOCS_FOLDER = 'arquivos.md';
-const MANIFEST_PATH = `${DOCS_FOLDER}/manifest.json`;
 
 // gemini-3.1-flash-lite: modelo estável da geração atual (Gemini 3),
 // mais leve que os modelos "latest"/preview mais badalados — como
@@ -36,17 +28,15 @@ const MANIFEST_PATH = `${DOCS_FOLDER}/manifest.json`;
 const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
 const state = {
-  files: [],    // { name, content }
-  history: [],  // { role: 'user' | 'model', text }
+  files: [],   // { name, content }
+  history: [], // { role: 'user' | 'model', text }
   apiKey: '',
-  loading: true, // true enquanto os arquivos da pasta ainda estão carregando
 };
 
 const els = {
   fileInput: document.getElementById('fileInput'),
   fileList: document.getElementById('fileList'),
   uploadLabel: document.querySelector('.upload-btn'),
-  loadStatus: document.getElementById('loadStatus'),
   apiKeyInput: document.getElementById('apiKeyInput'),
   clearBtn: document.getElementById('clearBtn'),
   messages: document.getElementById('messages'),
@@ -60,7 +50,6 @@ init();
 
 function init() {
   renderEmptyState();
-  autoLoadFiles();
 
   els.fileInput.addEventListener('change', (e) => addFiles(e.target.files));
   els.apiKeyInput.addEventListener('input', (e) => {
@@ -86,48 +75,6 @@ function init() {
     })
   );
   dropZone.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
-}
-
-function setLoadStatus(text, isError) {
-  els.loadStatus.textContent = text || '';
-  els.loadStatus.classList.toggle('load-status--error', Boolean(isError));
-}
-
-async function autoLoadFiles() {
-  state.loading = true;
-  renderEmptyState();
-
-  try {
-    const manifestRes = await fetch(MANIFEST_PATH);
-    if (!manifestRes.ok) {
-      throw new Error(`não encontrei ${MANIFEST_PATH} (HTTP ${manifestRes.status})`);
-    }
-    const filenames = await manifestRes.json();
-
-    const results = await Promise.allSettled(
-      filenames.map(async (name) => {
-        const fileRes = await fetch(`${DOCS_FOLDER}/${name}`);
-        if (!fileRes.ok) throw new Error(name);
-        return { name, content: await fileRes.text() };
-      })
-    );
-
-    results.forEach((r) => {
-      if (r.status === 'fulfilled') state.files.push(r.value);
-      else console.warn('Falha ao carregar arquivo:', r.reason?.message || r.reason);
-    });
-
-    const failed = results.filter((r) => r.status === 'rejected').length;
-    setLoadStatus(
-      failed > 0 ? `${failed} de ${results.length} arquivo(s) do manifest.json não foram encontrados.` : '',
-      failed > 0
-    );
-  } catch (err) {
-    setLoadStatus(`não consegui carregar ${DOCS_FOLDER}/ automaticamente (${err.message}).`, true);
-  } finally {
-    state.loading = false;
-    renderFileList(); // atualiza chips + empty state com o resultado final
-  }
 }
 
 function addFiles(fileListObj) {
@@ -190,12 +137,8 @@ async function onSubmit(e) {
     appendMessage('error', 'Cole sua chave da API do Gemini na barra lateral antes de conversar.');
     return;
   }
-  if (state.loading) {
-    appendMessage('error', 'Aguarde o carregamento dos documentos e tente de novo.');
-    return;
-  }
   if (state.files.length === 0) {
-    appendMessage('error', `Nenhum arquivo encontrado em ${DOCS_FOLDER}/ — confira o manifest.json ou adicione um arquivo manualmente aqui do lado.`);
+    appendMessage('error', 'Carregue pelo menos um arquivo .md antes de perguntar.');
     return;
   }
 
@@ -313,18 +256,11 @@ function scrollToBottom() {
 function renderEmptyState() {
   if (!els.emptyState) return;
   const n = state.files.length;
-
-  let headline, sub;
-  if (state.loading) {
-    headline = 'carregando documentos';
-    sub = `buscando os arquivos em ${DOCS_FOLDER}/...`;
-  } else if (n === 0) {
-    headline = 'nenhum documento encontrado';
-    sub = `confira se os arquivos .md estão em ${DOCS_FOLDER}/ e se o manifest.json lista os nomes certos — ou adicione um arquivo manualmente aqui do lado.`;
-  } else {
-    headline = 'pronto pra conversar';
-    sub = `pergunte algo sobre ${n === 1 ? 'o arquivo carregado' : `os ${n} arquivos carregados`}.`;
-  }
+  const headline = n === 0 ? 'carregue um .md' : 'pronto pra conversar';
+  const sub =
+    n === 0
+      ? 'o assistente responde só com base nos arquivos que você carregar aqui do lado.'
+      : `pergunte algo sobre ${n === 1 ? 'o arquivo carregado' : `os ${n} arquivos carregados`}.`;
 
   els.emptyState.innerHTML = `
     <p class="empty-headline">${headline}<span class="cursor">_</span></p>
