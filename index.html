@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>index.md — chat com seus arquivos markdown</title>
+<link rel="stylesheet" href="style.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+
+<!-- render markdown das respostas + sanitização contra HTML malicioso -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>index<span class="accent">.md</span></h1>
+      <p class="tagline">converse com seus arquivos markdown</p>
+    </div>
+
+    <section class="docs-section">
+      <h2 class="section-label">Documentos carregados</h2>
+      <div id="loadStatus" class="load-status"></div>
+      <div id="fileList" class="file-list"></div>
+      <label class="upload-btn">
+        + adicionar mais arquivos
+        <input type="file" id="fileInput" accept=".md,.markdown,text/markdown" multiple hidden>
+      </label>
+    </section>
+
+    <section class="config-section">
+      <label for="apiKeyInput" class="section-label">Chave da API (Gemini)</label>
+      <input type="password" id="apiKeyInput" class="key-input" placeholder="cole sua chave aqui" autocomplete="off">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="key-link">gerar chave gratuita</a>
+    </section>
+
+    <button type="button" id="clearBtn" class="clear-btn">limpar conversa</button>
+  </aside>
+
+  <main class="chat">
+    <div id="messages" class="messages" aria-live="polite">
+      <div class="empty-state" id="emptyState"></div>
+    </div>
+
+    <form id="chatForm" class="composer">
+      <textarea id="userInput" placeholder="pergunte algo sobre os documentos..." rows="1"></textarea>
+      <button type="submit" id="sendBtn">enviar</button>
+    </form>
+  </main>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
